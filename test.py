@@ -1,48 +1,23 @@
-"""Emotionix Flask application.
-
-Provides authentication, emotion detection from uploaded images,
-and emotion-based movie recommendations with SQLite caching.
-"""
-
-# ============================================================================
-# IMPORTS - Web Framework, Security, APIs, ML, Database
-# ============================================================================
-
-# Web Framework & HTTP utilities - Flask for web app structuring
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
-
-# Data processing & utilities - string matching, JSON handling, file paths, time
 import re
 import json
+import pandas as pd
 import os
-from datetime import datetime, timedelta
-import time
-
-# Session management & configuration - store user sessions, load environment config
 from flask_session import Session
-import config
-from dotenv import load_dotenv
-
-# Authentication & Security - Supabase for user auth, password hashing, email validation
+# import supabase
 from supabase import create_client
+import config
 from werkzeug.security import generate_password_hash, check_password_hash
-from gotrue.errors import AuthApiError
-from email_validator import validate_email, EmailNotValidError
-
-# HTTP requests & External APIs - fetch movie data from RapidAPI (IMDb236)
 import requests
-
-# Computer Vision & Machine Learning - OpenCV for image processing, NumPy for arrays, FER for emotion detection
 import cv2
 import numpy as np
-
-# Database - SQLite for caching movies and search results locally
 import sqlite3
+from datetime import datetime, timedelta
+from email_validator import validate_email, EmailNotValidError
 
-# ============================================================================
-# LOAD ENVIRONMENT VARIABLES
-# ============================================================================
-# Load .env file early so config.py and app setup can use environment variables
+from gotrue.errors import AuthApiError
+import time
+from dotenv import load_dotenv
 
 load_dotenv()
 os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib"
@@ -52,10 +27,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
 USER_DATA_FILE = 'users.json'
 supabase_client = None
 supabase_init_error = None
-
-# Initialize Supabase once at startup; keep app running even if auth config is missing.
 try:
-    # Prefer config.py values, but allow .env/runtime overrides for container/cloud deployments.
     supabase_url = getattr(config, 'SUPABASE_URL', None) or os.getenv('SUPABASE_URL')
     supabase_key = getattr(config, 'SUPABASE_KEY', None) or os.getenv('SUPABASE_KEY')
     if supabase_url and supabase_key:
@@ -113,13 +85,7 @@ app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
 
-# ============================================================================
-# DATABASE LAYER - Cache & User Storage
-# ============================================================================
-# Functions for managing SQLite cache (movies, search results) and user data
-
 def load_users():
-    """Load local fallback users from JSON storage."""
     if os.path.exists(USER_DATA_FILE):
         with open(USER_DATA_FILE, 'r') as f:
             return json.load(f)
@@ -130,11 +96,9 @@ DATABASE = 'movie_cache.db'
 
 
 def init_db():
-    """Create cache tables if they do not exist."""
     try:
         with sqlite3.connect(DATABASE) as conn:
             cursor = conn.cursor()
-            # Separate caches keep frequent emotion lookups and text search results independent.
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS movie_cache (
                     genre TEXT PRIMARY KEY,
@@ -155,7 +119,6 @@ def init_db():
 
 
 def get_cached_movies(genre):
-    """Return cached movies for a genre if cache is still fresh."""
     try:
         with sqlite3.connect(DATABASE) as conn:
             cursor = conn.cursor()
@@ -165,7 +128,6 @@ def get_cached_movies(genre):
             if row:
                 movies_json = row[0]
                 timestamp = datetime.strptime(row[1], '%Y-%m-%d %H:%M:%S')
-                # Keep cache short-lived so recommendations stay fresh without hammering the API.
                 if datetime.now() - timestamp < timedelta(hours=1):
                     return json.loads(movies_json)
     except Exception as e:
@@ -193,11 +155,6 @@ def save_users(users):
     except Exception as e:
         print(f"Error saving users: {e}")
 
-
-# ============================================================================
-# VALIDATION HELPERS - Email & Password Checks
-# ============================================================================
-# Functions to validate user input (email format, password strength)
 
 def is_valid_email(email):
     try:
@@ -255,14 +212,8 @@ def validate_user(email, password):
     return False
 
 
-# ============================================================================
-# AUTHENTICATION ROUTES - User Registration, Login, Logout
-# ============================================================================
-# Routes for user authentication: register, login, logout, email confirmation
-
 @app.route('/resend_confirmation', methods=['POST'])
 def resend_confirmation():
-    """Resend email confirmation link if user hasn't verified yet (Supabase auth)."""
     if not supabase_client:
         error_msg = "Authentication service is not available."
         if supabase_init_error:
@@ -289,7 +240,6 @@ def resend_confirmation():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration page and form handler. Validates email and password strength."""
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
@@ -317,7 +267,6 @@ def register():
 
 
 def safe_supabase_sign_up(email, password):
-    """Sign up with retries to handle transient Supabase/network failures."""
     if not supabase_client:
         error_msg = "Authentication service is not available."
         if supabase_init_error:
@@ -342,7 +291,6 @@ def safe_supabase_sign_up(email, password):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page and form handler. Authenticates user with Supabase or local JSON."""
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
@@ -389,7 +337,6 @@ def login():
 
 @app.route('/logout')
 def logout():
-    """Clear user session and redirect to login."""
     session.clear()
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
@@ -397,17 +344,11 @@ def logout():
 
 @app.after_request
 def add_no_cache_headers(response):
-    """Prevent browser caching of authenticated pages to protect user privacy."""
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
 
-
-# ============================================================================
-# EMOTION RECOGNITION & MOVIE RECOMMENDATIONS SETUP
-# ============================================================================
-# Configuration for FER (Facial Emotion Recognition) and RapidAPI movie data
 
 emotion_to_genre = {
     "happy": "Comedy",
@@ -418,26 +359,12 @@ emotion_to_genre = {
     "neutral": "Drama"
 }
 
-# Load RapidAPI credentials for IMDb movie search
 RAPIDAPI_KEY = os.getenv('RAPIDAPI_KEY')
 RAPIDAPI_HOST = os.getenv('RAPIDAPI_HOST')
 
 if not RAPIDAPI_KEY or not RAPIDAPI_HOST:
     print("Warning: RAPIDAPI_KEY or RAPIDAPI_HOST not set. Movie recommendations may not work.")
 
-# Initialize FER model at startup. If it fails, emotion detection will return 'neutral'.
-emotion_detector = None
-
-try:
-    from fer import FER
-
-    emotion_detector = FER(mtcnn=False)
-    print("✅ FER initialized successfully")
-except Exception as e:
-    print("❌ FER initialization failed:", e)
-    emotion_detector = None
-
-# Map FER emotion labels to a normalized set
 EMOTION_MAP = {
     "angry": "anger",
     "disgust": "anger",
@@ -447,17 +374,42 @@ EMOTION_MAP = {
     "surprise": "surprise",
     "neutral": "neutral"
 }
+emotion_detector = None
 
 
-# ============================================================================
-# EMOTION DETECTION FUNCTIONS
-# ============================================================================
-# Core logic: load image bytes, detect face(s), return strongest emotion
+def get_emotion_detector():
+    global emotion_detector
+    if emotion_detector is None:
+        from fer import FER
+        emotion_detector = FER(mtcnn=True)
+    return emotion_detector
+
+
+def choose_emotion_from_scores(emotions: dict):
+    MIN_CONFIDENCE = 0.35
+    NEUTRAL_THRESHOLD = 0.60
+    DELTA = 0.15
+
+    sorted_emotions = sorted(
+        emotions.items(), key=lambda x: x[1], reverse=True
+    )
+
+    top_emotion, top_score = sorted_emotions[0]
+    second_emotion, second_score = sorted_emotions[1]
+
+    # Neutral suppression
+    if top_emotion == "neutral" and top_score >= NEUTRAL_THRESHOLD:
+        if second_score >= top_score - DELTA:
+            return second_emotion, round(second_score, 2)
+
+    if top_score < MIN_CONFIDENCE:
+        return "neutral", round(top_score, 2)
+
+    return top_emotion, round(top_score, 2)
+
 
 def detect_emotion(image_data):
-    """Decode image bytes and return normalized emotion label."""
     if emotion_detector is None:
-        print("⚠️ FER not initialized")
         return "neutral"
 
     try:
@@ -465,43 +417,30 @@ def detect_emotion(image_data):
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
         if frame is None:
-            print("⚠️ Frame decode failed")
             return "neutral"
+
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.resize(frame, (640, 480))
 
         results = emotion_detector.detect_emotions(frame)
 
         if not results:
-            print("⚠️ No face detected")
             return "neutral"
-        best_emotion = "neutral"
-        best_score = 0.0
 
-        # Pick the highest confidence emotion across all detected faces.
-        for face in results:
-            for emotion, score in face["emotions"].items():
-                if score > best_score:
-                    best_score = score
-                    best_emotion = emotion
+        emotions = results[0]["emotions"]
+        final_emotion, confidence = choose_emotion_from_scores(emotions)
 
         print("🎯 Emotion scores:", results)
-        print("🎯 Selected emotion:", best_emotion, best_score)
+        print("🎯 Selected emotion:", final_emotion, confidence)
 
-        return EMOTION_MAP.get(best_emotion, "neutral")
+        return EMOTION_MAP.get(final_emotion, "neutral")
 
     except Exception as e:
         print("❌ FER ERROR:", e)
         return "neutral"
 
 
-# ============================================================================
-# MOVIE RECOMMENDATION FUNCTIONS
-# ============================================================================
-# Fetch movies by genre from RapidAPI IMDb, with SQLite caching
-
 def get_movie_recommendations(genre):
-    """Fetch movies by genre from cache first, then RapidAPI on cache miss."""
     cached_movies = get_cached_movies(genre)
     if cached_movies:
         return cached_movies
@@ -518,7 +457,6 @@ def get_movie_recommendations(genre):
     params = {
         "type": "movie",
         "genre": genre,
-        # Apply quality and language filters to return stronger Hindi movie suggestions.
         "rows": 100,
         "sortField": "startYear",
         "sortOrder": "DESC",
@@ -545,15 +483,8 @@ def get_movie_recommendations(genre):
         return []
 
 
-
-# ============================================================================
-# API ROUTES - Image Upload & Movie Data
-# ============================================================================
-# REST endpoints for emotion detection and movie recommendations
-
 @app.route('/detect_emotion', methods=['POST'])
 def detect_emotion_from_image():
-    """Accept uploaded image and return detected emotion."""
     image_file = request.files.get('image')
     if not image_file:
         return jsonify({'success': False, 'message': 'No image provided'}), 400
@@ -570,7 +501,6 @@ def detect_emotion_from_image():
 
 @app.route('/get_movies', methods=['GET'])
 def get_movies():
-    """Get movie recommendations based on detected emotion query parameter."""
     emotion = request.args.get('emotion', 'happy')
     genre = emotion_to_genre.get(emotion, 'Comedy')
     response = get_movie_recommendations(genre)
@@ -600,7 +530,6 @@ def get_movies():
 
 
 def get_cached_search_results(search_query):
-    """Return cached movie search results if within TTL."""
     try:
         with sqlite3.connect(DATABASE) as conn:
             cursor = conn.cursor()
@@ -632,12 +561,10 @@ def store_cached_search_results(search_query, results):
 
 @app.route('/search_movie', methods=['GET'])
 def search_movie():
-    """Search movies by title (query param) with response caching."""
     search_query = request.args.get('query', '').strip()
     if not search_query:
         return jsonify({'movies': []})
 
-    # Cache by raw query to avoid repeated calls while user types similar searches.
     cached_results = get_cached_search_results(search_query)
     if cached_results:
         return jsonify({'movies': cached_results})
@@ -697,14 +624,8 @@ def search_movie():
     return jsonify({'movies': movies})
 
 
-# ============================================================================
-# PAGE ROUTES - Home, Login, Health Check
-# ============================================================================
-# Routes for rendering HTML pages and diagnostic endpoints
-
 @app.route('/')
 def home_check():
-    """Redirect to home if logged in, otherwise to login page."""
     if 'user' in session:
         return redirect("/home")
     else:
@@ -713,7 +634,6 @@ def home_check():
 
 @app.route('/home')
 def home():
-    """Main page showing emotion detection and movie recommendations."""
     if 'user' not in session:
         flash("You need to log in first.", "warning")
         return redirect(url_for('login'))
@@ -722,7 +642,7 @@ def home():
 
 @app.route('/health')
 def health_check():
-    """Diagnostic endpoint: reports Supabase and RapidAPI configuration status."""
+    """Health check endpoint to diagnose authentication service status"""
     status = {
         'supabase_configured': supabase_client is not None,
         'supabase_url_set': bool(getattr(config, 'SUPABASE_URL', None) or os.getenv('SUPABASE_URL')),
@@ -731,10 +651,6 @@ def health_check():
     }
     return jsonify(status)
 
-
-# ============================================================================
-# APPLICATION STARTUP
-# ============================================================================
 
 init_db()
 if __name__ == "__main__":

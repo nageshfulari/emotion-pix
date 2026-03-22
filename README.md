@@ -1,145 +1,151 @@
-# Emotionix - Movie Recommendation App Based on Emotion Detection
+🎭 Emotionix – Emotion-Based Movie Recommendation System
 
-A Flask-based web application that detects user emotions through facial recognition and recommends movies based on detected emotions.
+Emotionix is an AI-powered web application developed by me that detects human facial emotions from images and recommends movies based on the detected emotional state. This project demonstrates my skills in Python, Flask, computer vision, machine learning integration, and full-stack web development.
 
-## Features
+🚀 Project Overview
 
-- **User Authentication**: Secure registration and login using Supabase
-- **Emotion Detection**: Real-time facial emotion detection using FER (Facial Emotion Recognition)
-- **Movie Recommendations**: Get movie suggestions based on detected emotions
-- **Movie Search**: Search for movies with voice search capability
-- **Camera Control**: Toggle camera on/off for privacy and security
-- **Movie Caching**: Efficient caching system for API responses
+I designed and built Emotionix to explore the practical application of emotion recognition using computer vision and to integrate it with a real-world recommendation system. The application captures facial images, analyzes emotions using a deep learning–based model, and maps the detected emotion to relevant movie genres using external APIs.
 
-## Technology Stack
+✨ Key Features
 
-- **Backend**: Flask, Python
-- **Frontend**: HTML, CSS, JavaScript
-- **Authentication**: Supabase
-- **APIs**: RapidAPI IMDB API for movie data
-- **Video Processing**: OpenCV
-- **Emotion Detection**: FER (Facial Emotion Recognition)
+🔐 Implemented secure user authentication using Supabase
 
-## Installation
+😊 Integrated facial emotion detection using FER (Facial Emotion Recognition)
 
-### Prerequisites
-- Python 3.11+
-- pip (Python package manager)
+🎬 Developed emotion-based movie recommendation logic
 
-### Local Setup
+🔍 Implemented movie search functionality using IMDb API via RapidAPI
 
-1. Clone the repository
-```bash
+🎙️ Added voice-based movie search for enhanced usability
+
+📷 Implemented camera on/off toggle for user privacy
+
+🗄️ Designed an efficient SQLite caching system to reduce API calls and improve performance
+
+🛠️ Technology Stack
+
+Programming Language
+
+Python
+
+Backend
+
+Flask
+
+Frontend
+
+HTML
+
+CSS
+
+JavaScript
+
+Computer Vision & AI
+
+OpenCV
+
+FER (Facial Emotion Recognition)
+
+APIs & Services
+
+Supabase (Authentication)
+
+RapidAPI – IMDb236 (Movie Data)
+
+Database
+
+SQLite (Caching)
+
+⚙️ Installation & Local Setup
+Prerequisites
+
+Python 3.11 or higher
+
+pip
+
+Clone the Repository
 git clone <your-repo-url>
 cd Emotionix
-```
 
-2. Create a virtual environment
-```bash
-# On Windows
+Create & Activate Virtual Environment
+
+Windows
+
 python -m venv venv
 venv\Scripts\activate
 
-# On macOS/Linux
+
+macOS / Linux
+
 python3 -m venv venv
 source venv/bin/activate
-```
 
-3. Verify virtual environment is activated
-```bash
-# You should see (venv) at the beginning of your terminal prompt
-# Example: (venv) C:\Users\YourName\Emotionix>
-```
-
-4. Install dependencies
-```bash
+Install Dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
-```
 
-5. Create `.env` file with your credentials
-```
+Environment Configuration
+
+Create a .env file in the project root:
+
 SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
-SECRET_KEY=your_secret_key
+SUPABASE_KEY=your_supabase_anon_key
+FLASK_SECRET_KEY=your_flask_secret_key
 RAPIDAPI_KEY=your_rapidapi_key
 RAPIDAPI_HOST=imdb236.p.rapidapi.com
-FLASK_SECRET_KEY=your_flask_secret_key
-```
 
-6. Run the application
-```bash
+Run the Application
 python app.py
-```
 
-Visit `http://localhost:5000` in your browser.
 
-### Deactivating Virtual Environment
+Access the application at:
 
-When you're done working, deactivate the virtual environment:
-```bash
-deactivate
-```
+http://localhost:5000
 
-## Project Structure
-
-```
+📁 Project Structure
 Emotionix/
-├── venv/                # Virtual environment (excluded from git)
 ├── app.py                # Main Flask application
-├── config.py             # Configuration settings
-├── requirements.txt      # Python dependencies
-├── .gitignore           # Git ignore rules
-├── .env                 # Environment variables (not committed)
-├── Procfile             # Deployment configuration
-├── runtime.txt          # Python version specification
-├── templates/           # HTML templates
-│   ├── home.html        # Main app interface
-│   ├── login.html       # Login page
-│   └── register.html    # Registration page
-├── static/              # Static assets (CSS, JS, images)
-│   └── logo2.png        # App logo
-└── movie_cache.db       # SQLite cache database
-```
+├── config.py             # Environment configuration handling
+├── requirements.txt      # Project dependencies
+├── templates/            # HTML templates
+│   ├── home.html
+│   ├── login.html
+│   └── register.html
+├── static/               # CSS, JavaScript, images
+├── movie_cache.db        # SQLite cache database
+└── .env                  # Environment variables (ignored)
 
-## API Keys Required
+🎯 Emotion-to-Genre Mapping Logic
+Emotion	Genre
+Happy	Comedy
+Sad	Drama
+Angry	Action
+Surprise	Adventure
+Neutral	Drama
+Fear	Horror
+📈 Learning Outcomes
 
-1. **Supabase** (Authentication)
-   - Visit https://supabase.com
-   - Create a new project
-   - Copy URL and Anon Key
+Through this project, I gained hands-on experience in:
 
-2. **RapidAPI** (Movie Data)
-   - Visit https://rapidapi.com
-   - Subscribe to "imdb236" API
-   - Copy your API key
+Building full-stack web applications using Flask
 
-## Usage
+Integrating machine learning models into production-ready APIs
 
-1. **Register/Login**: Create an account or log in with existing credentials
-2. **Enable Camera**: Toggle the camera switch in the navbar
-3. **Capture Emotion**: Click "Capture Face" to detect emotion
-4. **View Recommendations**: See movie suggestions based on detected emotion
-5. **Search Movies**: Use the search bar to find specific movies
-6. **Voice Search**: Click the microphone icon to search by voice
+Working with image processing and facial emotion recognition
 
-## Emotion-to-Genre Mapping
+API integration and response caching
 
-- 😊 Happy → Comedy
-- 😢 Sadness → Drama
-- 😠 Anger → Action
-- 😮 Surprise → Adventure
-- 😐 Neutral → Drama
-- 😨 Fear → Horror
+Secure authentication and environment variable management
 
-## Deployment
+🚀 Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions for Render.
+The application is structured to be deployment-ready on cloud platforms such as Render. Environment variables are securely managed, and optional services degrade gracefully if unavailable.
 
-## License
+📜 License
 
-MIT License
+This project is licensed under the MIT License.
 
-## Support
+👤 Author
 
-For issues or questions, please contact the development team.
+Developed by: Ganesh Mane
+Computer Vision | Machine Learning | Python | Flask

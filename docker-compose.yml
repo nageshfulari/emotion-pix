@@ -1,0 +1,14 @@
+services:
+  emotionix:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: emotionix-app
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      - PORT=5000
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-30cb9ec6a2ac4e084b6353b063b2648a}
+    restart: unless-stopped

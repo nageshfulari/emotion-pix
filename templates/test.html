@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎭 EmotionPix</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Rajdhani',sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#0f0124,#3a0ca3,#5f0f40);
+    color:#fff;
+    text-align:center;
+    padding-top:70px;
+}
+
+/* ================= NAVBAR ================= */
+.navbar{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:60px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    background:rgba(0,0,0,.6);
+    backdrop-filter:blur(12px);
+    z-index:1000;
+}
+
+.logo{
+    width:120px;
+}
+
+.nav-links{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.nav-button{
+    color:#fff;
+    text-decoration:none;
+    font-size:14px;
+}
+
+/* ================= TOGGLE ================= */
+.camera-toggle-switch{
+    position:relative;
+    width:46px;
+    height:22px;
+}
+
+.camera-toggle-switch input{
+    display:none;
+}
+
+.toggle-slider{
+    position:absolute;
+    inset:0;
+    background:#4caf50;
+    border-radius:30px;
+}
+
+.toggle-slider::before{
+    content:"";
+    position:absolute;
+    width:18px;
+    height:18px;
+    background:#fff;
+    border-radius:50%;
+    top:2px;
+    left:3px;
+    transition:.3s;
+}
+
+input:checked + .toggle-slider{
+    background:#ff416c;
+}
+
+input:checked + .toggle-slider::before{
+    transform:translateX(22px);
+}
+
+/* ================= CONTAINER ================= */
+.container{
+    width:92%;
+    max-width:500px;
+    margin:auto;
+    padding:20px;
+    background:rgba(0,0,0,.6);
+    border-radius:18px;
+    box-shadow:0 0 25px rgba(0,0,0,.5);
+}
+
+video{
+    width:100%;
+    border-radius:12px;
+    transform:scaleX(-1);
+}
+
+/* ================= BUTTONS ================= */
+button{
+    width:100%;
+    padding:14px;
+    margin-top:12px;
+    font-size:15px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    background:linear-gradient(45deg,#6108b5,#3a14ae);
+    color:#fff;
+}
+
+button:disabled{
+    opacity:.5;
+}
+
+/* ================= SEARCH ================= */
+.search-bar{
+    margin-top:16px;
+    display:flex;
+    gap:8px;
+}
+
+.search-bar input{
+    flex:1;
+    padding:12px;
+    border-radius:30px;
+    border:none;
+    outline:none;
+}
+
+/* ================= MOVIES ================= */
+.movie-container{
+    margin:20px auto;
+    width:92%;
+    max-width:900px;
+    background:rgba(0,0,0,.65);
+    padding:20px;
+    border-radius:18px;
+}
+
+.movie-list{
+    list-style:none;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+}
+
+.movie-list li{
+    background:rgba(255,255,255,.15);
+    border-radius:12px;
+    overflow:hidden;
+}
+
+.movie-list img{
+    width:100%;
+}
+
+.movie-overlay{
+    padding:10px;
+}
+
+.movie-overlay h3{
+    font-size:14px;
+}
+
+.movie-overlay p{
+    font-size:12px;
+    opacity:.8;
+}
+
+.explore-button{
+    display:inline-block;
+    margin-top:8px;
+    padding:8px 12px;
+    background:#ff416c;
+    border-radius:8px;
+    color:#fff;
+    text-decoration:none;
+    font-size:12px;
+}
+
+/* ================= EMOTION POPUP ================= */
+#emotion-popup{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:rgba(255,255,255,.95);
+    color:#000;
+    padding:12px 18px;
+    border-radius:12px;
+    display:none;
+    font-size:14px;
+    z-index:2000;
+}
+
+/* ================= MOBILE ================= */
+@media(max-width:480px){
+    .movie-list{
+        grid-template-columns:1fr;
+    }
+    .logo{
+        width:95px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <img src="{{ url_for('static', filename='logo2.png') }}" class="logo">
+    <div class="nav-links">
+        <a href="#" class="nav-button">Home</a>
+        <label class="camera-toggle-switch">
+            <input type="checkbox" id="camera-toggle">
+            <span class="toggle-slider"></span>
+        </label>
+        <a href="{{ url_for('logout') }}" class="nav-button">Logout</a>
+    </div>
+</div>
+
+<!-- EMOTION POPUP -->
+<div id="emotion-popup"></div>
+
+<!-- MAIN -->
+<div class="container">
+    <video id="video" autoplay></video>
+    <button id="capture-btn" disabled>Capture Face</button>
+
+    <h3 style="margin-top:14px;">🎥 Explore Movies</h3>
+
+    <div class="search-bar">
+        <input id="search-query" placeholder="Search movies...">
+        <button id="search-btn">🔍</button>
+        <button id="voice-search-btn">🎤</button>
+    </div>
+</div>
+
+<!-- MOVIES -->
+<div class="movie-container">
+    <h3>🎬 Recommended Movies</h3>
+    <ul id="movie-list" class="movie-list"></ul>
+</div>
+
+<script>
+const video=document.getElementById("video");
+const toggle=document.getElementById("camera-toggle");
+const captureBtn=document.getElementById("capture-btn");
+const popup=document.getElementById("emotion-popup");
+
+let stream=null;
+
+toggle.addEventListener("change",async()=>{
+    if(toggle.checked){
+        stream=await navigator.mediaDevices.getUserMedia({video:true});
+        video.srcObject=stream;
+        captureBtn.disabled=false;
+    }else{
+        stream.getTracks().forEach(t=>t.stop());
+        video.srcObject=null;
+        captureBtn.disabled=true;
+    }
+});
+
+function showEmotion(em){
+    popup.innerText="😊 Emotion Detected: "+em;
+    popup.style.display="block";
+    setTimeout(()=>popup.style.display="none",2000);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Verification</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #141e30, #243b55);
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .card {
+            background: #1f2937;
+            padding: 40px;
+            border-radius: 12px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .success {
+            color: #22c55e;
+            font-size: 28px;
+        }
+        .error {
+            color: #ef4444;
+            font-size: 28px;
+        }
+        p {
+            margin: 20px 0;
+            font-size: 16px;
+            color: #d1d5db;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        a:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    {% if success %}
+        <div class="success">✅ Verified</div>
+    {% else %}
+        <div class="error">❌ Error</div>
+    {% endif %}
+
+    <p>{{ message }}</p>
+
+    <a href="/login">Go to Login</a>
+</div>
+
+</body>
+</html>

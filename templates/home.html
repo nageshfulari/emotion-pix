@@ -55,7 +55,7 @@
             transition: opacity 0.5s ease;
             z-index: 1000;
         }
-        
+
 
 
         .navbar {
@@ -823,17 +823,17 @@
             // Show detected emotion prompt
             function showEmotionPopup(emotion) {
                 const popup = emotionPopup; // Assuming emotionPopup is defined globally
-            
+
                 popup.innerText = `😊 Emotion Detected: ${emotion}`;
                 popup.style.opacity = '0'; // Reset before showing
                 popup.style.display = 'block';
-            
+
                 // Trigger reflow to ensure the opacity reset is acknowledged
                 void popup.offsetWidth;
-            
+
                 popup.style.transition = 'opacity 0.5s ease';
                 popup.style.opacity = '1'; // Fade in
-            
+
                 setTimeout(() => {
                     popup.style.opacity = '0'; // Fade out
                     setTimeout(() => {
@@ -841,7 +841,7 @@
                     }, 500); // Matches transition duration
                 }, 2000);
             }
-            
+
 
             // Fetch movies based on emotion
             async function fetchMovies(emotion) {
@@ -880,42 +880,42 @@
             function startVoiceSearch() {
                 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
                 recognition.lang = 'en-US';
-            
+
                 voiceSearchBtn.classList.add('recording'); // Start animation
-            
+
                 recognition.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
                     searchInput.value = transcript;
                     voiceSearchBtn.classList.remove('recording'); // Stop animation
-            
+
                     // Trigger search after voice input
                     performSearch(transcript); // Replace with your actual search function or form submit
                 };
-            
+
                 recognition.onerror = () => {
                     voiceSearchBtn.classList.remove('recording'); // Stop animation on error
                 };
-            
+
                 recognition.start();
             }
-            
+
             voiceSearchBtn.addEventListener('click', startVoiceSearch);
-            
+
         });
 
         document.getElementById('search-btn').addEventListener('click', async () => {
-            const searchQuery = document.getElementById('search-query').value.trim();  
+            const searchQuery = document.getElementById('search-query').value.trim();
             if (!searchQuery) {
                 alert('Please enter a movie name to search!');
                 return;
             }
-    
+
             try {
                 const response = await fetch(`/search_movie?query=${encodeURIComponent(searchQuery)}`);
                 const data = await response.json();
                 const movieList = document.getElementById('movie-list');
                 movieList.innerHTML = '';
-    
+
                 if (data.movies && data.movies.length > 0) {
                     data.movies.forEach(movie => {
                         const li = document.createElement('li');
