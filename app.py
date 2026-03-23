@@ -502,48 +502,60 @@ def detect_emotion(image_data):
 
 def get_movie_recommendations(genre):
     """Fetch movies by genre from cache first, then RapidAPI on cache miss."""
+
+    # ✅ Check cache first
     cached_movies = get_cached_movies(genre)
     if cached_movies:
         return cached_movies
 
+    # ❌ If API keys missing
     if not RAPIDAPI_KEY or not RAPIDAPI_HOST:
-        print("RAPIDAPI_KEY or RAPIDAPI_HOST not configured")
+        print("❌ RAPIDAPI_KEY or RAPIDAPI_HOST not configured")
         return []
 
     url = "https://imdb236.p.rapidapi.com/api/imdb/search"
+
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": RAPIDAPI_HOST
     }
+
+    # ✅ FIXED PARAMS
     params = {
         "type": "movie",
         "genre": genre,
-        # Apply quality and language filters to return stronger Hindi movie suggestions.
-        "rows": 100,
-        "sortField": "startYear",
-        "sortOrder": "DESC",
-        "countriesOfOrigin": ["IN"],
-        "spokenLanguages": ["hi"],
-        "averageRatingFrom": "7",
-        "averageRatingTo": "10",
-        "numVotesFrom": "1000",
-        "numVotesTo": "1000000",
-        "startYearFrom": "1970",
-        "startYearTo": "2026",
+        "rows": 20
     }
 
     try:
         response = requests.get(url, headers=headers, params=params, timeout=5)
-        print("RAPIDAPI STATUS:", response.status_code)
+
+        print("🔥 STATUS:", response.status_code)
+        print("🔥 RAW RESPONSE:", response.text[:200])  # debug
 
         response.raise_for_status()
-        movies = response.json().get('results', [])
-        store_cached_movies(genre, movies.copy())
-        return movies
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching movies: {e}")
-        return []
 
+        data = response.json()
+
+        # ✅ Handle both formats
+        if isinstance(data, dict):
+            movies = data.get('results', [])
+        elif isinstance(data, list):
+            movies = data
+        else:
+            movies = []
+
+        print("🎬 MOVIES COUNT:", len(movies))
+
+        # ✅ Store in cache
+        if movies:
+            store_cached_movies(genre, movies.copy())
+
+        return movies
+
+    except requests.exceptions.RequestException as e:
+        print("❌ API ERROR:", e)
+        return []
 
 
 # ============================================================================
