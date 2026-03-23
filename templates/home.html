@@ -790,35 +790,41 @@
             });
 
             // Capture face and detect emotion
-            captureBtn.addEventListener('click', async () => {
-                if (!cameraEnabled) {
-                    alert('Camera is turned off. Please enable the camera to capture faces.');
-                    return;
-                }
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+           captureBtn.addEventListener('click', async () => {
+    console.log("📸 Capture clicked");
 
-                    canvas.toBlob(async (blob) => {
-                        const formData = new FormData();
-                        formData.append('image', blob, 'face.jpg');
+    if (!cameraEnabled) {
+        alert('Camera off');
+        return;
+    }
 
-                        const response = await fetch('/detect_emotion', { method: 'POST', body: formData });
-                        const data = await response.json();
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-                        if (data.success) {
-                            detectedEmotion = data.emotion;
-                            showEmotionPopup(detectedEmotion);
-                            fetchMovies(detectedEmotion);
-                        }
-                    });
-                } catch (error) {
-                    console.error('Error detecting emotion:', error);
-                }
-            });
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob(async (blob) => {
+        console.log("📤 Sending image...");
+
+        const formData = new FormData();
+        formData.append('image', blob, 'face.jpg');
+
+        const res = await fetch('/detect_emotion', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+        console.log("🎭 Emotion response:", data);
+
+        if (data.success) {
+            console.log("➡️ Calling movies API...");
+            fetchMovies(data.emotion);
+        }
+    });
+});
 
             // Show detected emotion prompt
             function showEmotionPopup(emotion) {
@@ -845,30 +851,46 @@
 
             // Fetch movies based on emotion
             async function fetchMovies(emotion) {
-                try {
-                    const response = await fetch(`/get_movies?emotion=${emotion}`);
-                    const data = await response.json();
+    try {
+        console.log("🎬 Fetching movies for:", emotion);
 
-                    movieList.innerHTML = '';
+        const response = await fetch(`/get_movies?emotion=${emotion}`);
+        const data = await response.json();
 
-                    if (data.movies && data.movies.length > 0) {
-                        data.movies.forEach(movie => {
-                            const li = document.createElement('li');
-                            li.innerHTML = `
-                        <img src="${movie.primaryImage || 'placeholder.jpg'}" alt="${movie.primaryTitle}">
-                        <div class="movie-overlay">
-                            <h3>${movie.primaryTitle}</h3>
-                            <p>${movie.description || 'No description available.'}</p>
-                            ${movie.trailerUrl ? `<a href="${movie.trailerUrl}" target="" class="explore-button">Watch Trailer</a>` : ''}
-                        </div>
-                    `;
-                            movieList.appendChild(li);
-                        });
+        console.log("🎬 Movies API response:", data); // 🔥 DEBUG
+
+        movieList.innerHTML = '';
+
+        // ❌ If no movies
+        if (!data.movies || data.movies.length === 0) {
+            movieList.innerHTML = "<p>No movies found 😢</p>";
+            return;
+        }
+
+        // ✅ Display movies
+        data.movies.forEach(movie => {
+            const li = document.createElement('li');
+
+            li.innerHTML = `
+                <img src="${movie.primaryImage || ''}" alt="${movie.primaryTitle}">
+                <div class="movie-details"> <!-- ✅ FIXED CLASS -->
+                    <h3>${movie.primaryTitle}</h3>
+                    <p>${movie.description || 'No description available.'}</p>
+                    ${
+                        movie.trailerUrl 
+                        ? `<a href="${movie.trailerUrl}" target="_blank" class="explore-button">Watch Trailer</a>` 
+                        : ''
                     }
-                } catch (error) {
-                    console.error('Error fetching movies:', error);
-                }
-            }
+                </div>
+            `;
+
+            movieList.appendChild(li);
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching movies:', error);
+    }
+}
 
             // Smooth scroll to top on "Home" button click
             document.getElementById('home-button').addEventListener('click', (event) => {
