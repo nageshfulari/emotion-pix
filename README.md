@@ -148,4 +148,5 @@ This project is licensed under the MIT License.
 👤 Author
 
 Developed by: Nagesh Fulari | Ganesh Mane | Yashwardhan Mahamuni
+
 Computer Vision | Machine Learning | Python | Flask
